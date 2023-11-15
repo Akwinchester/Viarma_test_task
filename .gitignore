@@ -1,0 +1,18 @@
+# Файлы среды виртуального окружения Python
+env/
+
+# Файл с учетными данными для API Google Sheets
+gs_credentials.json
+
+# Настройки и кэш IntelliJ IDEA
+.idea/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+
+# Логи
+*.log
+
+# Временные файлы
+*.tmp

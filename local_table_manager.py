@@ -27,8 +27,6 @@ class PandasHandler:
 
         # Добавляем в общий DataFrame
         self.df = pd.concat([self.df, row_df]).reset_index(drop=True)
-        self.save()
-        self.close()
 
     def get_column_index(self, name):
         if name in self.df.columns:

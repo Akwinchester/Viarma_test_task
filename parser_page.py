@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
-from config import domen, request_params
+from config import domain, request_params
 from random import randint
 
 
@@ -34,7 +34,7 @@ class PageParser:
         link = soup.find('a', string='Все характеристики')
         if link:
             self.new_url = link
-            self.characteristics_url = domen + link['href']
+            self.characteristics_url = domain + link['href']
             return self.characteristics_url
 
     def load_characteristics_page(self, url):

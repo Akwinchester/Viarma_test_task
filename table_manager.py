@@ -28,7 +28,7 @@ class GoogleSheet:
     def get_links_for_processing(self, column_number):
         """
         Возвращает данные указанного столбца
-        только для строк где в столбце B значение равно 1
+        только для строк где в столбце B значение равно 0
         """
 
         values = self.worksheet.col_values(column_number)
@@ -36,7 +36,7 @@ class GoogleSheet:
         filtered = []
         for i, val in enumerate(values):
             if str(self.worksheet.cell(i + 1, 2).value) == '0':
-                filtered.append(val)
+                filtered.append((val, i+1)) #i - номер строки
 
         return filtered
 
@@ -72,7 +72,7 @@ class GoogleSheet:
         try:
             col = self.worksheet.find(header).col
             return col
-        except gspread.CellNotFound:
+        except:
             return None
 
     def write_row(self, data):
@@ -80,30 +80,23 @@ class GoogleSheet:
         Записывает словарь как строку в таблицу.
         Ключ - название столбца, значение - значение в ячейке.
         """
-
-        # Получаем максимальный номер строки
-        row = self.worksheet.row_count + 1
-
+        #ограничение google-таблиц 26 столбцов
+        limited_data = dict(list(data.items())[:2])
         # Добавляем новые столбцы для отсутствующих заголовков
-        for header in data.keys():
+        for header in limited_data.keys():
             self.add_column(header)
 
+        # Получаем номер последней строки
+        last_row = len(self.worksheet.get_all_values())
+
+
+        # Добавляем новую строку
+        new_row = last_row + 1
+
         # Записываем данные в строку
-        for header, value in data.items():
+        for header, value in limited_data.items():
             col = self.find_column(header)
-            self.worksheet.update_cell(row, col, value)
-
-
-# Использование
-table = GoogleSheet('gs_credentials.json', table_id_output)
-data = {
-  'Название': 'iPhone 12',
-  'Цена': '65 000 р.',
-  'Скидка': '5%'
-}
-
-table.write_row(data)
-
+            self.worksheet.update_cell(new_row, col, value)
 
 
 # # Подсоединение к Google Таблицам

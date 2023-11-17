@@ -1,6 +1,5 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from config import table_id_input, table_id_output
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -8,7 +7,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 class GoogleSheet:
     """Класс для работы с Google Sheets"""
 
-    def __init__(self, credentials_file, spreadsheet_key):
+    def __init__(self, credentials_file, spreadsheet_key, clear_list=False):
         self.scope = ['https://www.googleapis.com/auth/spreadsheets']
 
         # Авторизация и создание клиента
@@ -20,29 +19,26 @@ class GoogleSheet:
         self.spreadsheet = self.client.open_by_key(spreadsheet_key)
         self.worksheet = self.spreadsheet.get_worksheet(0)
 
-    def get_data_column(self, column_number):
-        """Возвращает данные указанного столбца"""
-        column = self.worksheet.col_values(column_number)
-        return column
+        if clear_list:
+            self.worksheet.clear()
 
-    def get_links_for_processing(self, column_number):
+
+
+    def get_links_for_processing(self, column_number, status_number):
         """
         Возвращает данные указанного столбца
         только для строк где в столбце B значение равно 0
         """
 
         values = self.worksheet.col_values(column_number)
+        status = self.worksheet.col_values(status_number)
 
         filtered = []
         for i, val in enumerate(values):
-            if str(self.worksheet.cell(i + 1, 2).value) == '0':
+            if str(status[i]) == '0':
                 filtered.append((val, i+1)) #i - номер строки
 
         return filtered
-
-    def write_data(self, row_number, column_number, value):
-        """Записывает данные в указанную ячейку"""
-        self.worksheet.update_cell(row_number, column_number, value)
 
     def change_status_link(self, row_number):
         """Помечает ссылку, как обработанную"""
@@ -67,44 +63,21 @@ class GoogleSheet:
             self.worksheet.update_cell(1, num_cols, header)
 
 
-    def find_column(self, header):
-        """Возвращает номер столбца по заголовку"""
-        try:
-            col = self.worksheet.find(header).col
-            return col
-        except:
-            return None
+    def write_dataframe(self, df):
+        """Запись DataFrame в таблицу начиная с ячейки start_cell"""
 
-    def write_row(self, data):
-        """
-        Записывает словарь как строку в таблицу.
-        Ключ - название столбца, значение - значение в ячейке.
-        """
-        #ограничение google-таблиц 26 столбцов
-        limited_data = dict(list(data.items())[:2])
-        # Добавляем новые столбцы для отсутствующих заголовков
-        for header in limited_data.keys():
-            self.add_column(header)
+        # Получаем заголовки колонок
+        headers = list(df.columns)
+        for h in headers:
+            self.add_column(h)
 
-        # Получаем номер последней строки
-        last_row = len(self.worksheet.get_all_values())
+        # Получаем значения DataFrame как список списков
+        values = df.values.tolist()
 
+        start_cell = 'A' + str(len(self.worksheet.get_all_values()) + 1)
 
-        # Добавляем новую строку
-        new_row = last_row + 1
+        # Запись значений
+        self.worksheet.update(start_cell, values, value_input_option='USER_ENTERED')
 
-        # Записываем данные в строку
-        for header, value in limited_data.items():
-            col = self.find_column(header)
-            self.worksheet.update_cell(new_row, col, value)
-
-
-# # Подсоединение к Google Таблицам
-# scope = ['https://www.googleapis.com/auth/spreadsheets',
-#          "https://www.googleapis.com/auth/drive"]
-#
-# credentials = ServiceAccountCredentials.from_json_keyfile_name("gs_credentials.json", scope)
-# client = gspread.authorize(credentials)
-#
-# sheet = client.create("Yandex_parser_output")
-# sheet.share('arsenijkiselev03@gmail.com', perm_type='user', role='writer')
+    def get_data(self):
+        return self.worksheet.get_all_values()
